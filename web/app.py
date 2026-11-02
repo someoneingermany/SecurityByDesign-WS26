@@ -27,7 +27,8 @@ from logging_setup import RequestTimer, configure_logging, log_event
 DB_PATH = os.environ.get("NOTES_DB", "notes.db")
 LOGIN_TOKEN_HOURS = 8   # Gültigkeit der Tokens aus /auth/login
 MAX_TOKEN_DAYS = 90     # Höchstlaufzeit selbst erstellter API-Tokens
-TOKEN_PREFIX = "nt_"    # macht geleakte Tokens für Secret-Scanner erkennbar
+# Kein Passwort, nur ein Präfix zur Token-Erkennung (bandit-Fehlalarm B105)
+TOKEN_PREFIX = "nt_"  # nosec B105
 
 # Höchstrechte je Rolle. Effektive Rechte eines Requests:
 #   Scopes des Tokens  ∩  Scopes der *aktuellen* Rolle des Benutzers
@@ -463,7 +464,7 @@ def note_out(row: sqlite3.Row) -> NoteOut:
 def load_note(db: sqlite3.Connection, note_id: int, p: Principal) -> sqlite3.Row:
     """Liefert die Notiz nur, wenn der Aufrufer sie sehen darf – sonst 404,
     damit nicht erkennbar ist, ob eine fremde private Notiz existiert."""
-    row = db.execute(NOTE_SELECT + " WHERE n.id = ?", (note_id,)).fetchone()
+    row: sqlite3.Row | None = db.execute(NOTE_SELECT + " WHERE n.id = ?", (note_id,)).fetchone()
     if row is None or not (is_admin(p) or row["owner_id"] == p.user_id or row["visibility"] == "team"):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Notiz nicht gefunden")
     return row
@@ -483,8 +484,9 @@ def list_notes(
     owner: Annotated[str | None, Query(max_length=32, description="Benutzername")] = None,
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
     offset: Annotated[int, Query(ge=0)] = 0,
-):
-    sql, params = NOTE_SELECT + " WHERE 1 = 1", []
+) -> list[NoteOut]:
+    sql = NOTE_SELECT + " WHERE 1 = 1"
+    params: list[object] = []
     if not is_admin(p):
         sql += " AND (n.owner_id = ? OR n.visibility = 'team')"
         params.append(p.user_id)
@@ -512,11 +514,13 @@ def create_note(body: NoteIn, p: Writer, db: DB):
         (p.user_id, body.title, body.body, body.visibility.value, ts, ts),
     )
     db.commit()
+    if cur.lastrowid is None:  # sollte nie passieren, aber sauber behandeln
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "Notiz nicht gespeichert")
     return note_out(load_note(db, cur.lastrowid, p))
 
 
 @app.get("/notes/{note_id}", response_model=NoteOut, tags=["Notizen"])
-def get_note(note_id: Annotated[int, Path(ge=1)], p: Reader, db: DB):
+def get_note(note_id: Annotated[int, Path(ge=1)], p: Reader, db: DB) -> NoteOut:
     return note_out(load_note(db, note_id, p))
 
 
@@ -580,8 +584,10 @@ def revoke_token(token_id: Annotated[int, Path(ge=1)], request: Request, p: Auth
 
 # ── Administration ────────────────────────────────────────────────────────────
 @app.get("/admin/users", response_model=list[UserOut], tags=["Administration"])
-def list_users(p: Admin, db: DB, role: Role | None = None, active: bool | None = None):
-    sql, params = "SELECT * FROM users WHERE 1 = 1", []
+def list_users(p: Admin, db: DB, role: Role | None = None,
+               active: bool | None = None) -> list[UserOut]:
+    sql = "SELECT * FROM users WHERE 1 = 1"
+    params: list[object] = []
     if role:
         sql += " AND role = ?"
         params.append(role.value)
@@ -646,8 +652,9 @@ def list_audit(
     action: Annotated[str | None, Query(max_length=64, description="Präfix, z. B. 'auth.' oder 'token.create'")] = None,
     actor_id: int | None = None,
     limit: Annotated[int, Query(ge=1, le=500)] = 50,
-):
-    sql, params = "SELECT * FROM audit_log WHERE 1 = 1", []
+) -> list[AuditEntry]:
+    sql = "SELECT * FROM audit_log WHERE 1 = 1"
+    params: list[object] = []
     if action:
         sql += " AND action LIKE ? ESCAPE '\\'"
         params.append(escape_like(action) + "%")
