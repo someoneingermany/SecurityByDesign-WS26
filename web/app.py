@@ -8,6 +8,7 @@ Doku:   http://127.0.0.1:8000/docs  (automatisch erzeugte OpenAPI-Oberfläche)
 import hashlib
 import hmac
 import json
+import logging
 import os
 import secrets
 import sqlite3
@@ -19,6 +20,8 @@ from typing import Annotated, Iterator
 from fastapi import Depends, FastAPI, HTTPException, Path, Query, Request, Response, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
+
+from logging_setup import RequestTimer, configure_logging, log_event
 
 # ─── Konfiguration ─────────────────────────────────────────────────────────────
 DB_PATH = os.environ.get("NOTES_DB", "notes.db")
@@ -360,8 +363,11 @@ def user_out(row: sqlite3.Row) -> UserOut:
 # ─── App ───────────────────────────────────────────────────────────────────────
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    configure_logging(os.environ.get("LOG_LEVEL", "INFO"))
     init_db()
+    log_event("service.start", db=DB_PATH)
     yield
+    log_event("service.stop")
 
 
 app = FastAPI(
@@ -371,6 +377,33 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+
+@app.middleware("http")
+async def access_log(request: Request, call_next):
+    """Strukturierte Zugriffsprotokollierung pro Request.
+
+    Geloggt werden nur Metadaten (Methode, Pfad, Status, Dauer). Request-Bodies,
+    Tokens und Passwörter landen nie im Log.
+    """
+    timer = RequestTimer()
+    try:
+        with timer:
+            response = await call_next(request)
+    except Exception as exc:
+        # Erst nach dem with-Block ist duration_ms gesetzt.
+        log_event("http.error", level=logging.ERROR, method=request.method,
+                  path=request.url.path, status=500, duration_ms=timer.duration_ms,
+                  error=type(exc).__name__)
+        raise
+    log_event(
+        "http.request",
+        level=logging.INFO if response.status_code < 500 else logging.ERROR,
+        method=request.method,
+        path=request.url.path,
+        status=response.status_code,
+        duration_ms=timer.duration_ms,
+    )
+    return response
 
 @app.get("/health", tags=["System"])
 def health() -> dict:
