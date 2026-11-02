@@ -406,8 +406,19 @@ async def access_log(request: Request, call_next):
     return response
 
 @app.get("/health", tags=["System"])
-def health() -> dict:
-    return {"status": "ok"}
+def health(db: DB) -> dict:
+    """Health Check: prüft, dass die Datenbank erreichbar und das Schema da ist.
+
+    Liefert 200 mit status 'healthy' oder 503 mit status 'unhealthy', damit
+    Orchestrierung (Docker, Kubernetes) und das Health-Skript den Zustand
+    maschinell unterscheiden können."""
+    try:
+        db.execute("SELECT 1 FROM users LIMIT 1")
+    except sqlite3.Error as exc:
+        log_event("health.unhealthy", level=logging.ERROR, reason=str(exc))
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE,
+                            detail={"status": "unhealthy"})
+    return {"status": "healthy", "service": "notizen-api"}
 
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
