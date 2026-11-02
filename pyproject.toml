@@ -24,6 +24,11 @@ ignore_missing_imports = true
 mypy_path = "web"
 files = ["web/app.py", "web/logging_setup.py"]
 
+# ─── SAST (Feld 2: Code Security) ──────────────────────────────────────────────
+[tool.bandit]
+# Den bewusst unsicheren Demo-Code für die Positivtests nicht mitprüfen.
+exclude_dirs = [".venv", "__pycache__", "security_examples"]
+
 # ─── Tests (Feld 5: Dynamisches Testing) ───────────────────────────────────────
 [tool.pytest.ini_options]
 addopts = "-q"

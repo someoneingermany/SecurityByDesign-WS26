@@ -27,7 +27,8 @@ from logging_setup import RequestTimer, configure_logging, log_event
 DB_PATH = os.environ.get("NOTES_DB", "notes.db")
 LOGIN_TOKEN_HOURS = 8   # Gültigkeit der Tokens aus /auth/login
 MAX_TOKEN_DAYS = 90     # Höchstlaufzeit selbst erstellter API-Tokens
-TOKEN_PREFIX = "nt_"    # macht geleakte Tokens für Secret-Scanner erkennbar
+# Kein Passwort, nur ein Präfix zur Token-Erkennung (bandit-Fehlalarm B105)
+TOKEN_PREFIX = "nt_"  # nosec B105
 
 # Höchstrechte je Rolle. Effektive Rechte eines Requests:
 #   Scopes des Tokens  ∩  Scopes der *aktuellen* Rolle des Benutzers
