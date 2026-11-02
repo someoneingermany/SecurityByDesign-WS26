@@ -1,0 +1,6 @@
+# Entwicklungs- und CI-Werkzeuge (Tests).
+# Laufzeitpakete separat und hash-verifiziert installieren:
+#   pip install --require-hashes -r requirements.txt
+#   pip install -r web/requirements-dev.txt
+pytest==9.2.0
+httpx==0.28.1
