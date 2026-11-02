@@ -14,7 +14,7 @@ Als Build-Artefakt wird ein **Container-Image** (Docker) erzeugt.
 
 Das `Dockerfile` ist **mehrstufig** aufgebaut:
 
-1. Die **Build-Stufe** legt eine virtuelle Umgebung an und installiert die Abhängigkeiten ausschließlich aus der mit gepinnten `requirements.txt`.
+1. Die **Build-Stufe** legt eine virtuelle Umgebung an und installiert die Abhängigkeiten ausschließlich aus der mit Hashes gepinnten `requirements.txt`.
 2. Die **Laufzeit-Stufe** kopiert nur die fertige venv und den Anwendungscode in ein schlankes `python:3.12-slim`-Image. Build-Werkzeuge bleiben zurück, das Image wird kleiner und die Angriffsfläche geringer.
 
 Sicherheitsrelevante Entscheidungen im Dockerfile (sichere Defaults):
@@ -25,6 +25,17 @@ Sicherheitsrelevante Entscheidungen im Dockerfile (sichere Defaults):
 - Das Admin-Passwort wird **zur Laufzeit** als Umgebungsvariable übergeben und nie ins Image gebacken.
 - Das Basis-Image ist mit Tag gepinnt; für die vollständige Immer-Pflicht aus Feld 3 ist der Digest (`@sha256:…`) einzutragen – die Anleitung dazu steht als Kommentar im `Dockerfile`.
 
+### Abhängigkeiten (`requirements.in` → `requirements.txt`)
+
+Direkte Abhängigkeiten stehen in `requirements.in`. Daraus wird `requirements.txt` mit dem vollständigen Abhängigkeitsbaum und SHA-256-Hashes für alle Plattformen (u. a. x86_64 und arm64) erzeugt. `pip install --require-hashes` bricht ab, wenn ein Paket nicht gepinnt ist oder der Hash abweicht. Zum Aktualisieren:
+
+```bash
+docker run --rm -v "$PWD":/w -w /w python:3.12-slim sh -c \
+  "pip install -q pip-tools && pip-compile --generate-hashes --allow-unsafe --output-file=requirements.txt requirements.in"
+```
+
+Der Lauf im `python:3.12-slim`-Container stellt sicher, dass die Auflösung zur Python-Version des Images passt.
+
 ### Build-Skript
 
 `build.sh` führt den Build maschinell durch und ist dokumentiert (Kopf des Skripts und hier):
@@ -32,7 +43,7 @@ Sicherheitsrelevante Entscheidungen im Dockerfile (sichere Defaults):
 ```bash
 ./build.sh                 # baut  notizen-api:<kurzer-commit>  und  notizen-api:latest
 ./build.sh --smoke         # baut und startet den Container kurz zum Funktionstest
-IMAGE=ghcr.io/<org>/notizen-api ./build.sh   # eigenen Namen/Registry setzen
+IMAGE=ghcr.io/<owner>/<repo> ./build.sh   # eigenen Namen/Registry setzen
 ```
 
 Das Skript taggt das Image mit dem kurzen Git-Commit (nachvollziehbare Herkunft) und zusätzlich mit `latest`. Mit `--smoke` startet es den Container und pollt `/health`; antwortet der Endpunkt, ist bewiesen, dass das Image lauffähig ist – andernfalls endet das Skript mit Fehlercode und gibt die Container-Logs aus.
@@ -43,15 +54,15 @@ Der Workflow `.github/workflows/build-deploy.yml` löst bei einem **Push/Merge n
 
 1. meldet sich mit dem automatisch bereitgestellten `GITHUB_TOKEN` an der **GitHub Container Registry (GHCR)** an,
 2. bestimmt die Tags (kurzer Commit-SHA sowie `latest` auf dem Default-Branch),
-3. baut das Image und **pusht** es nach `ghcr.io/<org>/notizen-api`.
+3. baut das Image und **pusht** es nach `ghcr.io/<owner>/<repo>` (Kleinbuchstaben; entspricht `github.repository`).
 
-Das veröffentlichte Image ist **direkt installier- und ausführbar**, ohne erneuten Build:
+Das veröffentlichte Image ist **direkt installier- und ausführbar**, ohne erneuten Build. Voraussetzung: Das Paket ist nach dem ersten Push unter *Packages → Package settings → Change visibility* auf **public** gestellt (neue GHCR-Pakete sind standardmäßig privat; sonst ist vorher `docker login ghcr.io` nötig):
 
 ```bash
 docker run -d -p 8000:8000 \
   -e ADMIN_PASSWORD='ein-langes-passwort' \
   -v notes-data:/data \
-  ghcr.io/<org>/notizen-api:latest
+  ghcr.io/<owner>/<repo>:latest
 ```
 
 Alle verwendeten Actions sind mit Commit-SHA gepinnt (Kommentar nennt den zugehörigen Release-Tag), passend zur Supply-Chain-Linie aus Feld 3.
@@ -61,10 +72,11 @@ Alle verwendeten Actions sind mit Commit-SHA gepinnt (Kommentar nennt den zugeh�
 Die Aufgabe verlangt für Feld 1 ein erfolgreiches Build und eine erfolgreiche Ausführung. Vorführbar sind zwei Wege:
 
 - **Lokal:** `./build.sh --smoke` – baut das Image und zeigt, dass `/health` antwortet.
-- **Automatisiert:** ein Merge nach `main`, der den `Build & Publish`-Workflow grün durchlaufen lässt, anschließend `docker run … ghcr.io/<org>/notizen-api:latest` und ein Aufruf von `/health` bzw. `/docs`.
+- **Automatisiert:** ein Merge nach `main`, der den `Build & Publish`-Workflow grün durchlaufen lässt, anschließend `docker run … ghcr.io/<owner>/<repo>:latest` und ein Aufruf von `/health` bzw. `/docs`.
 
 ## Nachweise (Pfade)
 
+- `requirements.in` / `requirements.txt` – direkte Abhängigkeiten bzw. vollständig gepinnter Baum mit Hashes
 - `Dockerfile` – Definition des Artefakts
 - `.dockerignore` – schlanker, sauberer Build-Kontext (keine Caches/Secrets/Demo-Code im Image)
 - `build.sh` – maschinelles Build-Skript inkl. Smoke-Test
