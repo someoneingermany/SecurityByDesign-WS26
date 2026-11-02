@@ -1,4 +1,4 @@
 # Entwicklungs- und CI-Werkzeuge (Typprüfung, SAST, Tests)
--r requirements.txt
+-r ../requirements.txt
 mypy==2.4.1
 bandit==1.9.4
