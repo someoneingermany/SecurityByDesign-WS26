@@ -2,12 +2,14 @@
 Notizen-API – kleine Web-API mit Benutzern, Rollen, API-Tokens und Audit-Log.
 
 Start:  pip install -r requirements.txt
+        cd web
         ADMIN_PASSWORD='ein-langes-passwort' uvicorn app:app --reload
 Doku:   http://127.0.0.1:8000/docs  (automatisch erzeugte OpenAPI-Oberfläche)
 """
 import hashlib
 import hmac
 import json
+import logging
 import os
 import secrets
 import sqlite3
@@ -20,11 +22,14 @@ from fastapi import Depends, FastAPI, HTTPException, Path, Query, Request, Respo
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
 
+from logging_setup import RequestTimer, configure_logging, log_event
+
 # ─── Konfiguration ─────────────────────────────────────────────────────────────
 DB_PATH = os.environ.get("NOTES_DB", "notes.db")
 LOGIN_TOKEN_HOURS = 8   # Gültigkeit der Tokens aus /auth/login
 MAX_TOKEN_DAYS = 90     # Höchstlaufzeit selbst erstellter API-Tokens
-TOKEN_PREFIX = "nt_"    # macht geleakte Tokens für Secret-Scanner erkennbar
+# Kein Passwort, nur ein Präfix zur Token-Erkennung (bandit-Fehlalarm B105)
+TOKEN_PREFIX = "nt_"  # nosec B105
 
 # Höchstrechte je Rolle. Effektive Rechte eines Requests:
 #   Scopes des Tokens  ∩  Scopes der *aktuellen* Rolle des Benutzers
@@ -360,8 +365,11 @@ def user_out(row: sqlite3.Row) -> UserOut:
 # ─── App ───────────────────────────────────────────────────────────────────────
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    configure_logging(os.environ.get("LOG_LEVEL", "INFO"))
     init_db()
+    log_event("service.start", db=DB_PATH)
     yield
+    log_event("service.stop")
 
 
 app = FastAPI(
@@ -372,9 +380,45 @@ app = FastAPI(
 )
 
 
+@app.middleware("http")
+async def access_log(request: Request, call_next):
+    """Strukturierte Zugriffsprotokollierung pro Request.
+
+    Es werden nur Metadaten geloggt (Methode, Pfad, Status, Dauer), niemals
+    Request-Bodies, Tokens oder Passwörter – diese dürfen nicht in Logs landen.
+    """
+    with RequestTimer() as timer:
+        try:
+            response = await call_next(request)
+        except Exception:
+            log_event("http.error", level=logging.ERROR, method=request.method,
+                      path=request.url.path, duration_ms=timer.duration_ms)
+            raise
+    log_event(
+        "http.request",
+        level=logging.INFO if response.status_code < 500 else logging.ERROR,
+        method=request.method,
+        path=request.url.path,
+        status=response.status_code,
+        duration_ms=timer.duration_ms,
+    )
+    return response
+
+
 @app.get("/health", tags=["System"])
-def health() -> dict:
-    return {"status": "ok"}
+def health(db: DB) -> dict:
+    """Health Check: prüft, dass die Datenbank erreichbar und das Schema da ist.
+
+    Liefert 200 mit status 'healthy' oder 503 mit status 'unhealthy', damit
+    Orchestrierung (Docker, Kubernetes) und das Health-Skript den Zustand
+    maschinell unterscheiden können."""
+    try:
+        db.execute("SELECT 1 FROM users LIMIT 1")
+    except sqlite3.Error as exc:
+        log_event("health.unhealthy", level=logging.ERROR, reason=str(exc))
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE,
+                            detail={"status": "unhealthy"})
+    return {"status": "healthy", "service": "notizen-api"}
 
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
@@ -419,7 +463,7 @@ def note_out(row: sqlite3.Row) -> NoteOut:
 def load_note(db: sqlite3.Connection, note_id: int, p: Principal) -> sqlite3.Row:
     """Liefert die Notiz nur, wenn der Aufrufer sie sehen darf – sonst 404,
     damit nicht erkennbar ist, ob eine fremde private Notiz existiert."""
-    row = db.execute(NOTE_SELECT + " WHERE n.id = ?", (note_id,)).fetchone()
+    row: sqlite3.Row | None = db.execute(NOTE_SELECT + " WHERE n.id = ?", (note_id,)).fetchone()
     if row is None or not (is_admin(p) or row["owner_id"] == p.user_id or row["visibility"] == "team"):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Notiz nicht gefunden")
     return row
@@ -439,8 +483,9 @@ def list_notes(
     owner: Annotated[str | None, Query(max_length=32, description="Benutzername")] = None,
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
     offset: Annotated[int, Query(ge=0)] = 0,
-):
-    sql, params = NOTE_SELECT + " WHERE 1 = 1", []
+) -> list[NoteOut]:
+    sql = NOTE_SELECT + " WHERE 1 = 1"
+    params: list[object] = []
     if not is_admin(p):
         sql += " AND (n.owner_id = ? OR n.visibility = 'team')"
         params.append(p.user_id)
@@ -468,11 +513,13 @@ def create_note(body: NoteIn, p: Writer, db: DB):
         (p.user_id, body.title, body.body, body.visibility.value, ts, ts),
     )
     db.commit()
+    if cur.lastrowid is None:  # sollte nie passieren, aber sauber behandeln
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "Notiz nicht gespeichert")
     return note_out(load_note(db, cur.lastrowid, p))
 
 
 @app.get("/notes/{note_id}", response_model=NoteOut, tags=["Notizen"])
-def get_note(note_id: Annotated[int, Path(ge=1)], p: Reader, db: DB):
+def get_note(note_id: Annotated[int, Path(ge=1)], p: Reader, db: DB) -> NoteOut:
     return note_out(load_note(db, note_id, p))
 
 
@@ -536,8 +583,10 @@ def revoke_token(token_id: Annotated[int, Path(ge=1)], request: Request, p: Auth
 
 # ── Administration ────────────────────────────────────────────────────────────
 @app.get("/admin/users", response_model=list[UserOut], tags=["Administration"])
-def list_users(p: Admin, db: DB, role: Role | None = None, active: bool | None = None):
-    sql, params = "SELECT * FROM users WHERE 1 = 1", []
+def list_users(p: Admin, db: DB, role: Role | None = None,
+               active: bool | None = None) -> list[UserOut]:
+    sql = "SELECT * FROM users WHERE 1 = 1"
+    params: list[object] = []
     if role:
         sql += " AND role = ?"
         params.append(role.value)
@@ -602,8 +651,9 @@ def list_audit(
     action: Annotated[str | None, Query(max_length=64, description="Präfix, z. B. 'auth.' oder 'token.create'")] = None,
     actor_id: int | None = None,
     limit: Annotated[int, Query(ge=1, le=500)] = 50,
-):
-    sql, params = "SELECT * FROM audit_log WHERE 1 = 1", []
+) -> list[AuditEntry]:
+    sql = "SELECT * FROM audit_log WHERE 1 = 1"
+    params: list[object] = []
     if action:
         sql += " AND action LIKE ? ESCAPE '\\'"
         params.append(escape_like(action) + "%")

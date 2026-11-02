@@ -1,0 +1,36 @@
+[project]
+name = "notizen-api"
+version = "1.0.0"
+description = "Kleine REST-API mit Rollen, API-Tokens und Audit-Log (DevSecOps-Prüfungsprojekt)."
+requires-python = ">=3.10"
+
+# ─── Statische Typprüfung (Feld 2: Code Security) ──────────────────────────────
+[tool.mypy]
+python_version = "3.10"
+# Bewusst nicht "strict = true": FastAPI-Endpunkte deklarieren ihr Ausgabe-
+# schema über response_model, ein zusätzlicher Rückgabetyp an jeder Route
+# brächte keinen Sicherheitsgewinn. Stattdessen die wertvollen Prüfungen
+# einzeln – sie haben beim Aufsetzen echte Fehler gefunden (Typkonflikte in
+# SQL-Parametern, ein unbehandeltes None bei lastrowid).
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_return_any = true
+no_implicit_optional = true
+check_untyped_defs = true
+# Drittbibliotheken ohne Typstubs nicht als Fehler werten
+ignore_missing_imports = true
+# Geprüft wird der Anwendungscode. Der Testcode wird bewusst nicht strikt
+# typgeprüft (pytest-Fixtures ohne Rückgabetypen sind dort üblich).
+mypy_path = "web"
+files = ["web/app.py", "web/logging_setup.py"]
+
+# ─── SAST (Feld 2: Code Security) ──────────────────────────────────────────────
+[tool.bandit]
+# Testcode von der Prüfung ausnehmen (dort sind Beispiel-Passwörter beabsichtigt).
+exclude_dirs = [".venv", "__pycache__", "security_examples"]
+
+# ─── Tests (Feld 5: Dynamisches Testing) ───────────────────────────────────────
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["web/testapi.py"]
+pythonpath = ["web"]

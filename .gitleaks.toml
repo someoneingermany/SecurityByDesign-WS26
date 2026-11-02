@@ -1,0 +1,32 @@
+# gitleaks-Konfiguration (Feld 2: Code Security – Secret Scanning).
+# Basis sind die eingebauten Regeln; zusätzlich eine projektspezifische Regel
+# für unsere eigenen API-Tokens (Präfix "nt_") und eine Allowlist für die in
+# Tests/Doku bewusst verwendeten Beispielwerte.
+
+title = "Notizen-API gitleaks config"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "notizen-api-token"
+description = "Notizen-API API-Token (Präfix nt_)"
+# nt_ gefolgt von urlsafe-base64 (token_urlsafe(32) -> ~43 Zeichen)
+regex = '''nt_[A-Za-z0-9_-]{40,}'''
+tags = ["token", "notizen-api"]
+
+[allowlist]
+description = "Bewusst eingecheckte Beispielwerte (keine echten Secrets)"
+paths = [
+    '''web/readme\.md''',
+    '''web/testapi\.py''',              # Test-Passwörter wie "erika-passwort-123"
+    '''docs/positive-tests\.md''',
+    '''security_examples/.*''',      # bewusst unsicherer Demo-Code (Positivtest)
+]
+regexes = [
+    '''nt_erfunden''',                  # Platzhalter in den Tests
+    '''bitte-ein-langes-passwort''',    # Beispiel in Doku/README
+    '''smoke-test-passwort-123''',      # Wegwerf-Passwort im Smoke-Test (build.sh)
+    '''dast-lauf-passwort-123''',       # Wegwerf-Passwort im DAST-Lauf
+    '''lokales-dev-passwort-123''',     # lokales Dev-Default im Makefile
+]

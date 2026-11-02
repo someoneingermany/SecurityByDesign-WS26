@@ -1,0 +1,54 @@
+name: CI
+
+# Felder 2 (Code Security) und 5 (Dynamisches Testing):
+# läuft bei jedem Push und Pull Request und blockiert bei Fehlern.
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-analyze:
+    runs-on: ubuntu-latest
+    steps:
+      # Actions sind mit Commit-SHA gepinnt (Feld 3, Immer-Pflicht). Die hier
+      # eingetragenen SHAs entsprechen den genannten Release-Tags; bei einem
+      # Update den SHA des neuen Tags eintragen (z. B. via Dependabot, s. u.).
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Python einrichten
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
+        with:
+          python-version: "3.12"
+
+      - name: Laufzeit- und Dev-Abhängigkeiten installieren
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r web/requirements-dev.txt
+
+      - name: Typprüfung (mypy)
+        run: mypy
+
+      - name: SAST (bandit)
+        run: bandit -c pyproject.toml -r web/app.py web/logging_setup.py
+
+      - name: Tests (pytest)
+        run: pytest -q
+
+  secret-scanning:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (volle Historie für gitleaks)
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Secret Scanning (gitleaks)
+        uses: gitleaks/gitleaks-action@83373cf2f8c4db6e24b41c1a9b086bb9619e9cd3 # v2.3.6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}   # von der Action für PR-Scans benötigt
+          GITLEAKS_CONFIG: .gitleaks.toml
