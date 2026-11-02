@@ -22,6 +22,7 @@ Dieser Code gehört nicht zur Anwendung. Er ist vom regulären SAST-Lauf (`exclu
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
+pip install --require-hashes -r requirements.txt
 pip install -r web/requirements-dev.txt
 brew install gitleaks            # oder Release von github.com/gitleaks/gitleaks
 ./security_examples/run_positive_tests.sh

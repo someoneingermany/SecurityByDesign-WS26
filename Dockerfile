@@ -33,7 +33,7 @@ RUN useradd --create-home --uid 10001 appuser
 WORKDIR /app
 
 COPY --from=build /opt/venv /opt/venv
-COPY web/app.py ./
+COPY web/app.py web/logging_setup.py ./
 
 ENV PATH="/opt/venv/bin:$PATH" \
     PYTHONUNBUFFERED=1 \

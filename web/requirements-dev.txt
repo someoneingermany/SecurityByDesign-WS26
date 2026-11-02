@@ -1,4 +1,8 @@
-# Entwicklungs- und CI-Werkzeuge (Typprüfung, SAST, Tests)
--r ../requirements.txt
+# Entwicklungs- und CI-Werkzeuge (Typprüfung, SAST, Tests).
+# Laufzeitpakete separat und hash-verifiziert installieren:
+#   pip install --require-hashes -r requirements.txt
+#   pip install -r web/requirements-dev.txt
 mypy==2.4.1
 bandit==1.9.4
+pytest==9.2.0
+httpx==0.28.1
