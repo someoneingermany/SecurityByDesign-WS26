@@ -1,0 +1,16 @@
+# Nicht in den Build-Kontext (kleineres Image, keine Secrets/Artefakte im Image)
+.git
+.github
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+*.db
+notes.db
+security_examples/
+docs/
+tests/
+test_api.py
+*.md
+sbom*.json
+.venv/
