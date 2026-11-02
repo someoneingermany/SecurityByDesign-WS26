@@ -1,0 +1,11 @@
+[project]
+name = "notizen-api"
+version = "1.0.0"
+description = "Kleine REST-API mit Rollen, API-Tokens und Audit-Log (DevSecOps-Prüfungsprojekt)."
+requires-python = ">=3.10"
+
+# ─── Tests (Feld 5: Dynamisches Testing) ───────────────────────────────────────
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["web/testapi.py"]
+pythonpath = ["web"]
