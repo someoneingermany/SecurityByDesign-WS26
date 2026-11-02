@@ -1,6 +1,6 @@
 name: CI
 
-# Feld 5 (Dynamisches Testing):
+# Felder 2 (Code Security) und 5 (Dynamisches Testing):
 # läuft bei jedem Push und Pull Request und blockiert bei Fehlern.
 on:
   push:
@@ -29,6 +29,9 @@ jobs:
         run: |
           pip install --require-hashes -r requirements.txt
           pip install -r web/requirements-dev.txt
+
+      - name: Typprüfung (mypy)
+        run: mypy
 
       - name: Tests (pytest)
         run: pytest -q
