@@ -1,11 +1,15 @@
 name: CI
 
-# Felder 2 (Code Security) und 5 (Dynamisches Testing):
+# Felder 2 (Code Security), 3 (Schwachstellen-Scan) und 5 (Dynamisches Testing):
 # läuft bei jedem Push und Pull Request und blockiert bei Fehlern.
 on:
   push:
     branches: [main, develop]
   pull_request:
+  schedule:
+    # Montags: neue CVEs erscheinen auch ohne Code-Änderung (Feld 3, Schwachstellen-Scan)
+    - cron: "17 5 * * 1"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -29,6 +33,11 @@ jobs:
         run: |
           pip install --require-hashes -r requirements.txt
           pip install -r web/requirements-dev.txt
+
+      - name: Schwachstellen-Scan der Abhängigkeiten (pip-audit)
+        # Feld 3: bricht ab, sobald eine Abhängigkeit eine bekannte Lücke hat
+        run: |
+          pip-audit --strict --require-hashes --disable-pip -r requirements.txt
 
       - name: Typprüfung (mypy)
         run: mypy
