@@ -1,10 +1,12 @@
 name: Build & Publish
 
-# Feld 1 (Building, Vertiefung): Ein Merge in den Deploy-Branch (main) baut das
-# Container-Image automatisiert und veröffentlicht es in der GitHub Container
-# Registry (GHCR). Das veröffentlichte Image ist direkt installier-/ausführbar:
-#   docker run -e ADMIN_PASSWORD=... ghcr.io/<org>/notizen-api:latest
+# Feld 1 (Building, Zusatz, nicht als Vertiefung gewertet): Ein Merge in den
+# Deploy-Branch (main) baut das Container-Image automatisiert und veröffentlicht
+# es in der GitHub Container Registry (GHCR).
 # Feld 3 (SBOM): Zu jedem veröffentlichten Image entsteht automatisch eine SBOM.
+# Das veröffentlichte Image lässt sich direkt starten:
+#   docker run -e ADMIN_PASSWORD=... ghcr.io/someoneingermany/securitybydesign-ws26:latest
+
 on:
   push:
     branches: [main]
