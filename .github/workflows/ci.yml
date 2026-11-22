@@ -29,15 +29,16 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Laufzeit- und Dev-Abhängigkeiten installieren
-        run: |
-          pip install --require-hashes -r requirements.txt
-          pip install -r web/requirements-dev.txt
+      - name: Laufzeit- und Dev-Abhängigkeiten hash-verifiziert installieren
+        # requirements-dev.txt enthält Laufzeit- UND Dev-Pakete, alle mit Hashes
+        # (Feld 3, Immer-Pflicht). Kein "pip install --upgrade pip": das wäre ungepinnt.
+        run: pip install --require-hashes -r web/requirements-dev.txt
 
       - name: Schwachstellen-Scan der Abhängigkeiten (pip-audit)
         # Feld 3: bricht ab, sobald eine Abhängigkeit eine bekannte Lücke hat
         run: |
           pip-audit --strict --require-hashes --disable-pip -r requirements.txt
+          pip-audit --strict --require-hashes --disable-pip -r web/requirements-dev.txt
 
       - name: Typprüfung (mypy)
         run: mypy
