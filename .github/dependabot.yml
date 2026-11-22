@@ -1,0 +1,32 @@
+# Dependabot: automatische Update-Pull-Requests (Feld 3, Kriterium 4).
+# Läuft wöchentlich und auf Knopfdruck (on-demand):
+#   Repo → Insights → Dependency graph → Dependabot → "Check for updates"
+# Jeder PR durchläuft automatisch die CI (Tests, SAST, Schwachstellen-Scan).
+#
+# Abweichung vom Standard: zwei pip-Einträge, weil die Lock-Dateien an zwei
+# Orten liegen (Laufzeit im Root, Entwicklung in web/).
+version: 2
+updates:
+  # Laufzeit-Abhängigkeiten: requirements.in → requirements.txt (pip-compile, mit Hashes)
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  # Entwicklungs-Werkzeuge: web/requirements-dev.in → web/requirements-dev.txt
+  - package-ecosystem: "pip"
+    directory: "/web"
+    schedule:
+      interval: "weekly"
+
+  # Basis-Image: aktualisiert Tag und Digest in beiden FROM-Zeilen des Dockerfiles
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  # GitHub Actions: aktualisiert die Commit-SHA-Pins samt Versionskommentar
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
