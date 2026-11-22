@@ -1,11 +1,15 @@
 name: CI
 
-# Felder 2 (Code Security)  3 (Schwachstellen-Scan) und 5 (Dynamisches Testing):
+# Felder 2 (Code Security), 3 (Schwachstellen-Scan) und 5 (Dynamisches Testing):
 # läuft bei jedem Push und Pull Request und blockiert bei Fehlern.
 on:
   push:
     branches: [main, develop]
   pull_request:
+  schedule:
+    # Montags: neue CVEs erscheinen auch ohne Code-Änderung (Feld 3, Schwachstellen-Scan)
+    - cron: "17 5 * * 1"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -25,12 +29,16 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Laufzeit- und Dev-Abhängigkeiten installieren
+      - name: Laufzeit- und Dev-Abhängigkeiten hash-verifiziert installieren
+        # requirements-dev.txt enthält Laufzeit- UND Dev-Pakete, alle mit Hashes
+        # (Feld 3, Immer-Pflicht). Kein "pip install --upgrade pip": das wäre ungepinnt.
+        run: pip install --require-hashes -r web/requirements-dev.txt
+
+      - name: Schwachstellen-Scan der Abhängigkeiten (pip-audit)
+        # Feld 3: bricht ab, sobald eine Abhängigkeit eine bekannte Lücke hat
         run: |
-          python -m pip install --upgrade pip
-          # Laufzeitpakete hash-verifiziert, Dev-Werkzeuge getrennt (ohne Hashes)
-          pip install --require-hashes -r requirements.txt
-          pip install -r web/requirements-dev.txt
+          pip-audit --strict --require-hashes --disable-pip -r requirements.txt
+          pip-audit --strict --require-hashes --disable-pip -r web/requirements-dev.txt
 
       - name: Typprüfung (mypy)
         run: mypy

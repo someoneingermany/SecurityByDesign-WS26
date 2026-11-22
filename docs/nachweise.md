@@ -147,56 +147,45 @@ python scripts/mutation_demo.py
 ./build.sh --smoke                          # braucht Docker
 ```
 
-<!-- ======== CHECKLISTE: was noch fehlt. (LÖSCHEN VOR ABGABE) ======== -->
+<!-- ======== CHECKLISTE: vor der Abgabe von hier bis "ENDE CHECKLISTE" löschen ======== -->
 
 ---
 
 ## Checkliste bis zur Abgabe
 
 > [!IMPORTANT]
-> Stand: 22.11.2026, Branch `feature/codesecurity`, Commit `57e5dac`.
-> Abhaken: `[ ]` zu `[x]` ändern, oder auf GitHub direkt das Kästchen anklicken.
+> Dieser Abschnitt wird vor der Abgabe gelöscht.
+> Stand: 22.11.2026. Abhaken: `[ ]` zu `[x]` ändern, oder auf GitHub direkt das Kästchen anklicken.
 
-### Erledigt
+### Im Repository: erledigt
 
-- [x] Feld 1: Dockerfile, `build.sh`, `docs/building.md`
-- [x] Feld 2: Pydantic, mypy, bandit, gitleaks, Positivtests, `docs/datenfluss.md`
-- [x] Feld 2: Middleware-Fix in `web/app.py` (11 Tests grün)
-- [x] Feld 3: `.github/dependabot.yml`
-- [x] Feld 3: SBOM-Schritt in `build-deploy.yml`
+- [x] Feld 1: Dockerfile, `build.sh`, `docs/building.md` (Vertiefungs-Behauptung entfernt)
+- [x] Feld 2: Pydantic, mypy, bandit, gitleaks, Positivtests
+- [x] Feld 2: Middleware-Fix in `web/app.py`
+- [x] Feld 2: `docs/datenfluss.md` mit korrigierter Reihenfolge
+- [x] Feld 3: `requirements.txt` mit korrekten Hashes, `anyio` und `idna` ohne bekannte Lücken
+- [x] Feld 3: `web/requirements-dev.txt` mit Hashes
+- [x] Feld 3: `ci.yml` installiert hash-verifiziert, ohne ungepinntes `pip install --upgrade pip`
+- [x] Feld 3: Schwachstellen-Scan mit pip-audit in `ci.yml`, auch wöchentlich
+- [x] Feld 3: Basis-Image mit Digest, kein `curl` per `apt-get`
+- [x] Feld 3: SBOM in `build-deploy.yml`, `dependabot.yml`, `docs/supply-chain.md`
 - [x] Feld 4: JSON-Logs und Health Check
+- [x] Feld 5: `scripts/mutation_demo.py`, `docs/testing.md`
+- [x] `SCHUTZKONZEPT.md`, README im Root, Kurzbeschreibung in `docs/projektanmeldung.md`
 
+### Lokal prüfen (siehe [Alles lokal prüfen](#alles-lokal-prüfen))
 
-
-### Feld 3: noch offen
-
-- [ ] `web/requirements-dev.txt` mit Hashes erzeugen (Datei aus der Pflicht-Variante)
-- [ ] `ci.yml`: Installation auf `pip install --require-hashes -r web/requirements-dev.txt` umstellen
-- [ ] `ci.yml`: `pip install --upgrade pip` entfernen (ungepinnt)
-- [ ] `ci.yml`: Schritt „Schwachstellen-Scan (pip-audit)“ einfügen. **Ohne ihn ist Kriterium 3 nicht erfüllt**
-- [ ] `ci.yml`: `schedule` und `workflow_dispatch` unter `on:` ergänzen
-- [ ] `ci.yml`: im Kopfkommentar das fehlende Komma nach „Code Security“ setzen
-- [ ] `Dockerfile`: Digest in beide `FROM`-Zeilen
-- [ ] `Dockerfile`: `apt-get install curl` entfernen, Health Check per Python
-- [ ] `docs/supply-chain.md` anlegen
-
-### Feld 2, Feld 5 und Doku: noch offen
-
-- [ ] `docs/datenfluss.md`: Reihenfolge korrigieren (erst Authentifizierung, dann Validierung)
-- [ ] `docs/building.md`: Vertiefungs-Behauptung entfernen, Digest und curl aktualisieren
-- [ ] `scripts/mutation_demo.py` anlegen
-- [ ] `docs/testing.md` anlegen
-- [ ] `SCHUTZKONZEPT.md` anlegen
-- [ ] `git mv readme.md docs/projektanmeldung.md`
-- [ ] `git mv web/readme.md README.md`
-- [ ] `.gitleaks.toml`: `README.md` zusätzlich zu `web/readme.md` in die Allowlist
-- [ ] Im README auf diese Seite verlinken
+- [ ] `mypy`, `bandit`, `pytest`, `pip-audit` grün
+- [ ] `python scripts/mutation_demo.py` meldet „Alle 6 Fehler erkannt“
+- [ ] `./security_examples/run_positive_tests.sh` meldet „Alle Positivtests erfolgreich“
+- [ ] `./build.sh --smoke` meldet „OK“
 
 ### Auf GitHub
 
-- [ ] Pull Request `feature/codesecurity` → `main` öffnen, CI muss grün werden
+- [ ] Pull Request `feature/codesecurity` → `main` öffnen, alle Checks grün
 - [ ] Nachweis Feld 5: PR mit absichtlichem Fehler öffnen, roten CI-Lauf in `docs/testing.md` verlinken, PR schließen
 - [ ] PR nach `main` mergen
+- [ ] Nach dem ersten Lauf von „Build & Publish“: SBOM unter *Artifacts* vorhanden
 - [ ] GHCR-Paket auf *public* stellen
 - [ ] *Settings → Code security*: Dependabot alerts und security updates einschalten
 - [ ] Eine Woche vor der Präsentation: Vertiefungen und Repo-Link an den Dozenten

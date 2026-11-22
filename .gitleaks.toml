@@ -19,6 +19,7 @@ tags = ["token", "notizen-api"]
 description = "Bewusst eingecheckte Beispielwerte (keine echten Secrets)"
 paths = [
     '''web/readme\.md''',
+    '''README\.md''',                  # Projekt-README im Root
     '''web/testapi\.py''',              # Test-Passwörter wie "erika-passwort-123"
     '''docs/positive-tests\.md''',
     '''security_examples/.*''',      # bewusst unsicherer Demo-Code (Positivtest)

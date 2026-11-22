@@ -7,13 +7,13 @@ Dieses Dokument beschreibt, welchen Weg Daten durch die Anwendung nehmen und an 
 ```mermaid
 flowchart LR
     C[Client] -->|HTTP-Request<br>Bearer-Token, JSON| MW[Middleware<br>access_log]
-    MW --> V{Pydantic / Path / Query<br>Validierung}
-    V -->|ungültig| E422[422 Unprocessable Entity]
-    V -->|gültig| A{get_principal<br>Token-Hash prüfen}
+    MW --> A{get_principal<br>Token-Hash prüfen}
     A -->|fehlt / abgelaufen /<br>widerrufen / inaktiv| E401[401 Unauthorized]
     A --> S{require scope<br>Token ∩ Rolle}
     S -->|Scope fehlt| E403[403 Forbidden]
-    S --> H[Endpunkt-Logik<br>Besitz- und Sichtbarkeitsprüfung]
+    S --> V{Pydantic / Path / Query<br>Validierung}
+    V -->|ungültig| E422[422 Unprocessable Entity]
+    V -->|gültig| H[Endpunkt-Logik<br>Besitz- und Sichtbarkeitsprüfung]
     H -->|fremde private Notiz| E404[404 Not Found]
     H -->|parametrisiertes SQL| DB[(SQLite<br>users, notes,<br>api_tokens, audit_log)]
     H --> AU[write_audit] --> DB
@@ -21,14 +21,16 @@ flowchart LR
     MW -->|nur Metadaten| LOG[STDOUT<br>JSON-Logs]
 ```
 
+**Reihenfolge:** FastAPI löst zuerst die Abhängigkeiten auf (`get_principal`, `require`) und validiert erst danach Body und Parameter. Ein Request ohne gültiges Token bekommt deshalb immer 401, auch wenn sein Body ungültig ist. Unangemeldete erfahren so nichts über das erwartete Schema. Nur syntaktisch kaputtes JSON wird schon vorher mit 422 abgewiesen.
+
 ## Schritte im Detail
 
 | # | Station | Was passiert | Code |
 |---|---|---|---|
-| 1 | **Middleware** `access_log` | Misst die Dauer und protokolliert nur Methode, Pfad, Status und Dauer. Request-Bodies, Tokens und Passwörter werden nie geloggt. | `access_log`, `logging_setup.log_event` |
-| 2 | **Eingabevalidierung (Fail Fast)** | Bevor eine Zeile Endpunktcode läuft, prüft FastAPI/Pydantic Typ, Länge, Muster und Wertebereich. Verstöße enden sofort mit **422**, es entsteht kein Seiteneffekt in der Datenbank. | `LoginIn`, `NoteIn`, `ApiTokenIn`, `UserCreate`, `Path(ge=1)`, `Query(le=100)` |
-| 3 | **Authentifizierung** | Das Bearer-Token wird mit SHA-256 gehasht und mit `api_tokens.token_hash` verglichen. Der Klartext wird nie gespeichert. Abgelaufene, widerrufene Tokens und inaktive Nutzer werden mit **401** abgelehnt. | `get_principal`, `hash_token` |
-| 4 | **Autorisierung** | Effektive Rechte = Scopes des Tokens ∩ Scopes der *aktuellen* Rolle. Fehlt der benötigte Scope, kommt **403**. | `require`, `ROLE_SCOPES` |
+| 1 | **Middleware** `access_log` | Misst die Dauer und protokolliert nur Methode, Pfad, Status und Dauer. Request-Bodies, Tokens und Passwörter werden nie geloggt. Unerwartete Fehler werden als `http.error` mit Fehlertyp geloggt, der Client erhält nur „Internal Server Error“. | `access_log`, `logging_setup.log_event` |
+| 2 | **Authentifizierung** | Das Bearer-Token wird mit SHA-256 gehasht und mit `api_tokens.token_hash` verglichen. Der Klartext wird nie gespeichert. Abgelaufene, widerrufene Tokens und inaktive Nutzer werden mit **401** abgelehnt. | `get_principal`, `hash_token` |
+| 3 | **Autorisierung** | Effektive Rechte = Scopes des Tokens ∩ Scopes der *aktuellen* Rolle. Fehlt der benötigte Scope, kommt **403**. | `require`, `ROLE_SCOPES` |
+| 4 | **Eingabevalidierung (Fail Fast)** | Nach Authentifizierung und Autorisierung, aber bevor eine Zeile Endpunktcode läuft, prüft FastAPI/Pydantic Typ, Länge, Muster und Wertebereich. Verstöße enden sofort mit **422**, es entsteht kein Seiteneffekt in der Datenbank. | `LoginIn`, `NoteIn`, `ApiTokenIn`, `UserCreate`, `Path(ge=1)`, `Query(le=100)` |
 | 5 | **Objektzugriff** | Notizen werden nur geliefert, wenn der Aufrufer Besitzer oder Admin ist oder die Notiz `team` ist. Sonst kommt **404**, damit die Existenz fremder Notizen nicht erkennbar ist. | `load_note`, `ensure_can_modify` |
 | 6 | **Datenbank** | Alle Abfragen sind parametrisiert (`?`). `LIKE`-Muster werden escaped. Fremdschlüssel sind aktiv. Nicht committete Änderungen werden beim Schließen verworfen. | `connect`, `get_db`, `escape_like` |
 | 7 | **Audit-Log** | Sicherheitsrelevante Vorgänge werden in `audit_log` geschrieben, auch fehlgeschlagene Logins: Login/Logout, Token anlegen/widerrufen, Nutzer- und Rollenänderungen, Löschen. | `write_audit` |

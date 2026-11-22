@@ -2,7 +2,7 @@
 
 ## Erfülltes Kriterium
 
-Gewählt wurde **Kriterium 2** (ein Skript führt Build/Packaging maschinell durch, die Nutzung ist dokumentiert) sowie die **Vertiefung** (ein Merge in den Deployment-Branch baut und veröffentlicht das Artefakt automatisiert).
+Gewählt wurde **Kriterium 2** (ein Skript führt Build/Packaging maschinell durch, die Nutzung ist dokumentiert). Zusätzlich veröffentlicht ein Merge nach `main` das Image automatisch. Das wird **nicht als Vertiefung gewertet**, unsere zwei Vertiefungen sind Feld 2 und Feld 3.
 
 ## Gewähltes Artefakt und Begründung
 
@@ -21,9 +21,9 @@ Sicherheitsrelevante Entscheidungen im Dockerfile (sichere Defaults):
 
 - Die Anwendung läuft als **unprivilegierter Nutzer** `appuser` (UID 10001), nicht als root.
 - Das Datenverzeichnis `/data` ist ein **Volume** und gehört dem unprivilegierten Nutzer; die SQLite-Datei liegt außerhalb des Images.
-- Ein **HEALTHCHECK** prüft periodisch den `/health`-Endpunkt, sodass Docker/Orchestrierung einen ungesunden Container erkennt.
+- Ein **HEALTHCHECK** prüft periodisch den `/health`-Endpunkt, sodass Docker/Orchestrierung einen ungesunden Container erkennt. Er nutzt Python statt `curl`, damit kein ungepinntes Systempaket per `apt-get` ins Image kommt.
 - Das Admin-Passwort wird **zur Laufzeit** als Umgebungsvariable übergeben und nie ins Image gebacken.
-- Das Basis-Image ist mit Tag gepinnt; für die vollständige Immer-Pflicht aus Feld 3 ist der Digest (`@sha256:…`) einzutragen – die Anleitung dazu steht als Kommentar im `Dockerfile`.
+- Das Basis-Image ist mit Tag und Digest gepinnt (`python:3.12-slim@sha256:…`) und erfüllt damit die Immer-Pflicht aus Feld 3. Dependabot hält den Digest aktuell.
 
 ### Abhängigkeiten (`requirements.in` → `requirements.txt`)
 
@@ -48,7 +48,7 @@ IMAGE=ghcr.io/<owner>/<repo> ./build.sh   # eigenen Namen/Registry setzen
 
 Das Skript taggt das Image mit dem kurzen Git-Commit (nachvollziehbare Herkunft) und zusätzlich mit `latest`. Mit `--smoke` startet es den Container und pollt `/health`; antwortet der Endpunkt, ist bewiesen, dass das Image lauffähig ist – andernfalls endet das Skript mit Fehlercode und gibt die Container-Logs aus.
 
-## Vertiefung: automatisches Veröffentlichen bei Merge
+## Zusätzlich: automatisches Veröffentlichen bei Merge (keine Vertiefung)
 
 Der Workflow `.github/workflows/build-deploy.yml` löst bei einem **Push/Merge nach `main`** (dem Deployment-Branch) aus und
 
@@ -87,4 +87,4 @@ Die Aufgabe verlangt für Feld 1 ein erfolgreiches Build und eine erfolgreiche A
 
 **Mitigiert:** Das Artefakt ist reproduzierbar und trägt über den Commit-Tag eine nachvollziehbare Herkunft; durch Hash-verifizierte Abhängigkeiten enthält es exakt die geprüften Pakete; der non-root-Betrieb und das ausgelagerte Datenvolume verringern die Auswirkung einer Kompromittierung.
 
-**Verbleibend:** Das Image wird derzeit nicht signiert (z. B. mit cosign) und nicht nach dem Bau auf Image-Ebene auf Schwachstellen gescannt (z. B. Trivy/Grype). Beides wären die nächsten sinnvollen Schritte, um die Lieferkette bis zum veröffentlichten Image zu schließen.
+**Verbleibend:** Das Image wird nicht signiert (z. B. mit cosign). Der Schwachstellen-Scan (pip-audit, siehe [supply-chain.md](supply-chain.md)) prüft die Python-Abhängigkeiten, nicht die Debian-Pakete des Basis-Images. Beides wären die nächsten sinnvollen Schritte.
