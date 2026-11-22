@@ -155,7 +155,7 @@ python scripts/mutation_demo.py
 
 > [!IMPORTANT]
 > Dieser Abschnitt wird vor der Abgabe gelöscht.
-> Stand: 22.11.2026. Abhaken: `[ ]` zu `[x]` ändern, oder auf GitHub direkt das Kästchen anklicken.
+> Stand: 22.11.2026, Branch `michelletest`. Abhaken: `[ ]` zu `[x]` ändern, oder auf GitHub direkt das Kästchen anklicken.
 
 ### Im Repository: erledigt
 
@@ -169,7 +169,7 @@ python scripts/mutation_demo.py
 - [x] Feld 3: Schwachstellen-Scan mit pip-audit in `ci.yml`, auch wöchentlich
 - [x] Feld 3: Basis-Image mit Digest, kein `curl` per `apt-get`
 - [x] Feld 3: SBOM in `build-deploy.yml`, `dependabot.yml`, `docs/supply-chain.md`
-- [x] Feld 4: JSON-Logs und Health Check
+- [x] Feld 4: JSON-Logs und Health Check, kein toter Verweis mehr in `logging_setup.py`
 - [x] Feld 5: `scripts/mutation_demo.py`, `docs/testing.md`
 - [x] `SCHUTZKONZEPT.md`, README im Root, Kurzbeschreibung in `docs/projektanmeldung.md`
 
@@ -178,17 +178,33 @@ python scripts/mutation_demo.py
 - [ ] `mypy`, `bandit`, `pytest`, `pip-audit` grün
 - [ ] `python scripts/mutation_demo.py` meldet „Alle 6 Fehler erkannt“
 - [ ] `./security_examples/run_positive_tests.sh` meldet „Alle Positivtests erfolgreich“
-- [ ] `./build.sh --smoke` meldet „OK“
+- [ ] `./build.sh --smoke` meldet „OK“ (braucht Docker)
 
 ### Auf GitHub
 
-- [ ] Pull Request `feature/codesecurity` → `main` öffnen, alle Checks grün
-- [ ] Nachweis Feld 5: PR mit absichtlichem Fehler öffnen, roten CI-Lauf in `docs/testing.md` verlinken, PR schließen
-- [ ] PR nach `main` mergen
-- [ ] Nach dem ersten Lauf von „Build & Publish“: SBOM unter *Artifacts* vorhanden
-- [ ] GHCR-Paket auf *public* stellen
+- [ ] Team hat `michelletest` angeschaut und ist einverstanden
+- [ ] Pull Request `michelletest` → `feature/codesecurity` (oder direkt → `main`) öffnen, alle Checks grün
+- [ ] Nachweis Feld 5: PR mit absichtlichem Fehler öffnen (z. B. `if False:` in `ensure_can_modify`), roten CI-Lauf in `docs/testing.md` statt `<hier eintragen>` verlinken, PR schließen ohne Merge
+- [ ] Nach `main` mergen. Erst dann sieht der Dozent alles. Dependabot und der wöchentliche Scan lesen ihre Konfiguration nur vom Standard-Branch `main` und wirken vorher nicht
+- [ ] Nach dem ersten Lauf von „Build & Publish“: SBOM unter *Artifacts* vorhanden. Artefakte verfallen nach 90 Tagen, für die Präsentation einmal herunterladen
+- [ ] GHCR-Paket auf *public* stellen (*Packages → Paket → Package settings → Change visibility*)
 - [ ] *Settings → Code security*: Dependabot alerts und security updates einschalten
-- [ ] Eine Woche vor der Präsentation: Vertiefungen und Repo-Link an den Dozenten
+- [ ] Erster Dependabot-PR erschienen (oder über *Insights → Dependency graph → Dependabot → Check for updates* auslösen)
+- [ ] Optional: alte Branches `develop`, `feature/building`, `michelletest` nach dem Merge löschen
+
+### Präsentation (15–20 Minuten, jedes Teammitglied trägt bei)
+
+- [ ] Aufteilen, wer was vorstellt
+- [ ] Anwendung und Angriffsfläche (STRIDE-Tabelle aus dem Schutzkonzept)
+- [ ] Überblick über alle fünf Felder (Tabelle oben auf dieser Seite)
+- [ ] Vertiefung Feld 2 mit Positivtests, live oder als Screenshot
+- [ ] Vertiefung Feld 3: Pinning, SBOM, pip-audit (echter Fund `anyio`/`idna`), Dependabot-PR
+- [ ] Restrisiken und nächste Schritte (aus dem Schutzkonzept)
+- [ ] Nachweise vorab öffnen: grüner CI-Lauf, roter CI-Lauf (Feld 5), SBOM-Artefakt
+
+### Abgabe
+
+- [ ] Eine Woche vor der Präsentation: Vertiefungen (Feld 2 und 3) und Repo-Link an den Dozenten
 - [ ] Diese Checkliste löschen
 
 <!-- ======== ENDE CHECKLISTE ======== -->

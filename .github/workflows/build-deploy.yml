@@ -5,7 +5,7 @@ name: Build & Publish
 # es in der GitHub Container Registry (GHCR).
 # Feld 3 (SBOM): Zu jedem veröffentlichten Image entsteht automatisch eine SBOM.
 # Das veröffentlichte Image ist direkt installier-/ausführbar:
-#   docker run -e ADMIN_PASSWORD=... ghcr.io/<org>/notizen-api:latest
+#   docker run -e ADMIN_PASSWORD=... ghcr.io/someoneingermany/securitybydesign-ws26:latest
 
 on:
   push:

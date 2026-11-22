@@ -43,7 +43,7 @@ Der Lauf im `python:3.12-slim`-Container stellt sicher, dass die Auflösung zur 
 ```bash
 ./build.sh                 # baut  notizen-api:<kurzer-commit>  und  notizen-api:latest
 ./build.sh --smoke         # baut und startet den Container kurz zum Funktionstest
-IMAGE=ghcr.io/<owner>/<repo> ./build.sh   # eigenen Namen/Registry setzen
+IMAGE=ghcr.io/someoneingermany/securitybydesign-ws26 ./build.sh   # eigenen Namen/Registry setzen
 ```
 
 Das Skript taggt das Image mit dem kurzen Git-Commit (nachvollziehbare Herkunft) und zusätzlich mit `latest`. Mit `--smoke` startet es den Container und pollt `/health`; antwortet der Endpunkt, ist bewiesen, dass das Image lauffähig ist – andernfalls endet das Skript mit Fehlercode und gibt die Container-Logs aus.
@@ -54,7 +54,7 @@ Der Workflow `.github/workflows/build-deploy.yml` löst bei einem **Push/Merge n
 
 1. meldet sich mit dem automatisch bereitgestellten `GITHUB_TOKEN` an der **GitHub Container Registry (GHCR)** an,
 2. bestimmt die Tags (kurzer Commit-SHA sowie `latest` auf dem Default-Branch),
-3. baut das Image und **pusht** es nach `ghcr.io/<owner>/<repo>` (Kleinbuchstaben; entspricht `github.repository`).
+3. baut das Image und **pusht** es nach `ghcr.io/someoneingermany/securitybydesign-ws26` (Repository-Name in Kleinbuchstaben).
 
 Das veröffentlichte Image ist **direkt installier- und ausführbar**, ohne erneuten Build. Voraussetzung: Das Paket ist nach dem ersten Push unter *Packages → Package settings → Change visibility* auf **public** gestellt (neue GHCR-Pakete sind standardmäßig privat; sonst ist vorher `docker login ghcr.io` nötig):
 
@@ -62,7 +62,7 @@ Das veröffentlichte Image ist **direkt installier- und ausführbar**, ohne erne
 docker run -d -p 8000:8000 \
   -e ADMIN_PASSWORD='ein-langes-passwort' \
   -v notes-data:/data \
-  ghcr.io/<owner>/<repo>:latest
+  ghcr.io/someoneingermany/securitybydesign-ws26:latest
 ```
 
 Alle verwendeten Actions sind mit Commit-SHA gepinnt (Kommentar nennt den zugehörigen Release-Tag), passend zur Supply-Chain-Linie aus Feld 3.
@@ -72,7 +72,7 @@ Alle verwendeten Actions sind mit Commit-SHA gepinnt (Kommentar nennt den zugeh�
 Die Aufgabe verlangt für Feld 1 ein erfolgreiches Build und eine erfolgreiche Ausführung. Vorführbar sind zwei Wege:
 
 - **Lokal:** `./build.sh --smoke` – baut das Image und zeigt, dass `/health` antwortet.
-- **Automatisiert:** ein Merge nach `main`, der den `Build & Publish`-Workflow grün durchlaufen lässt, anschließend `docker run … ghcr.io/<owner>/<repo>:latest` und ein Aufruf von `/health` bzw. `/docs`.
+- **Automatisiert:** ein Merge nach `main`, der den `Build & Publish`-Workflow grün durchlaufen lässt, anschließend `docker run … ghcr.io/someoneingermany/securitybydesign-ws26:latest` und ein Aufruf von `/health` bzw. `/docs`.
 
 ## Nachweise (Pfade)
 

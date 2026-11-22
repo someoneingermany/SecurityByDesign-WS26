@@ -3,8 +3,8 @@ Strukturiertes JSON-Logging nach STDOUT (Feld 4: Logging & Betrieb).
 
 Jede Logzeile ist ein eigenständiges JSON-Objekt ("JSON Lines"), damit
 Monitoring-Werkzeuge (Loki, ELK, Datadog …) die Felder ohne Parser-Regeln
-auswerten können. Das Auswerteskript scripts/analyze_logs.py nutzt genau
-dieses Format, um Verfügbarkeit und Fehlerquote zu bestimmen.
+auswerten können, z. B. lokal:
+    docker logs <container> | jq -c 'select(.level == "ERROR")'
 """
 import json
 import logging
