@@ -33,8 +33,6 @@ Ausgangslage: alle Tests grün.
 Alle 6 Fehler erkannt: Die Tests scheitern bei jeder dieser fehlerhaften Änderungen.
 ```
 
-**Nachweis in GitHub:** ein Pull Request, der in `ensure_can_modify` die Bedingung durch `if False:` ersetzt. Die CI wird rot. Link zum roten Lauf: `<hier eintragen>`.
-
 ## Lokal ausführen
 
 ```bash
