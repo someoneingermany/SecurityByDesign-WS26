@@ -1,5 +1,4 @@
-#
- Entwicklungs- und CI-Werkzeuge (Typprüfung, SAST, Tests, Schwachstellen-Scan).
+# Entwicklungs- und CI-Werkzeuge (Typprüfung, SAST, Tests, Schwachstellen-Scan).
 # Daraus wird requirements-dev.txt MIT Hashes erzeugt (Feld 3, Immer-Pflicht):
 #   cd web && pip-compile --strip-extras --allow-unsafe --generate-hashes \
 #     --output-file=requirements-dev.txt requirements-dev.in
@@ -7,6 +6,7 @@
 # -c: Laufzeitpakete in exakt denselben Versionen wie im Image
 -c ../requirements.txt
 -r ../requirements.in
+
 
 mypy==2.4.1
 bandit==1.9.4
