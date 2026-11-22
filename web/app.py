@@ -2,6 +2,7 @@
 Notizen-API – kleine Web-API mit Benutzern, Rollen, API-Tokens und Audit-Log.
 
 Start:  pip install -r requirements.txt
+        cd web
         ADMIN_PASSWORD='ein-langes-passwort' uvicorn app:app --reload
 Doku:   http://127.0.0.1:8000/docs  (automatisch erzeugte OpenAPI-Oberfläche)
 """

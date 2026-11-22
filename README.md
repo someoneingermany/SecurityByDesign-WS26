@@ -1,6 +1,8 @@
 # Notizen-API
 
-Eine kleine REST-API (Python, FastAPI, SQLite) zur Verwaltung von Notizen mit Benutzerkonten, drei Rollen, persönlichen API-Tokens mit eingeschränkten Rechten und einem Audit-Log. Der gesamte Code steckt in `app.py` (rund 600 Zeilen inklusive Kommentaren), damit sich jeder Datenfluss von der HTTP-Anfrage bis zur Tabelle verfolgen lässt. Das macht die API auch als Grundlage für eine Bedrohungsmodellierung (z. B. STRIDE) oder einen Penetrationstest geeignet.
+Eine kleine REST-API (Python, FastAPI, SQLite) zur Verwaltung von Notizen mit Benutzerkonten, drei Rollen, persönlichen API-Tokens mit eingeschränkten Rechten und einem Audit-Log. Der Code steckt in `web/app.py` und `web/logging_setup.py`, damit sich jeder Datenfluss von der HTTP-Anfrage bis zur Tabelle verfolgen lässt.
+
+Die Sicherheitsmaßnahmen, sortiert nach den fünf Bewertungsfeldern, beschreibt das [SCHUTZKONZEPT.md](SCHUTZKONZEPT.md). Wo genau welches Prüfungskriterium erfüllt ist, steht in [docs/nachweise.md](docs/nachweise.md).
 
 ## Start
 
@@ -8,11 +10,12 @@ Voraussetzung ist Python 3.10 oder neuer.
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+pip install --require-hashes -r requirements.txt
+cd web
 ADMIN_PASSWORD='bitte-ein-langes-passwort' uvicorn app:app --reload
 ```
 
-Die interaktive Dokumentation liegt unter http://127.0.0.1:8000/docs. Beim ersten Start wird das Konto `admin` angelegt; ohne `ADMIN_PASSWORD` wird ein Zufallspasswort erzeugt und einmalig auf der Konsole ausgegeben. Der Speicherort der Datenbank lässt sich mit `NOTES_DB` ändern (Standard: `notes.db`). Die Tests laufen mit `pytest -q`.
+Die interaktive Dokumentation liegt unter http://127.0.0.1:8000/docs. Beim ersten Start wird das Konto `admin` angelegt; ohne `ADMIN_PASSWORD` wird ein Zufallspasswort erzeugt und einmalig auf der Konsole ausgegeben. Der Speicherort der Datenbank lässt sich mit `NOTES_DB` ändern (Standard: `notes.db`). Die Tests laufen nach `pip install --require-hashes -r web/requirements-dev.txt` mit `pytest -q` im Repo-Root.
 
 ## Rollen und Scopes
 
