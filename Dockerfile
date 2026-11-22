@@ -1,12 +1,9 @@
 # syntax=docker/dockerfile:1
 
 # ─── Build-Stufe: Abhängigkeiten in ein venv, hash-verifiziert ─────────────────
-# Basis-Image mit Tag gepinnt. Für die Immer-Pflicht aus Feld 3 den Digest
-# ergänzen – einmalig mit dem echten Wert eurer Registry ermitteln:
-#   docker pull python:3.12-slim
-#   docker inspect --format='{{index .RepoDigests 0}}' python:3.12-slim
-# und dann als  python:3.12-slim@sha256:<DIGEST>  eintragen (hier und unten).
-FROM python:3.12-slim AS build
+# Basis-Image mit Tag UND Digest gepinnt (Feld 3, Immer-Pflicht). Maßgeblich ist
+# der Digest: Er ändert sich nie, ein Tag schon. Dependabot hält ihn aktuell.
+FROM python:3.12-slim@sha256:5e2bdb1b0d542d5039cffb8181c65930093949194a65c365dfb1b0fe13a4fa5b AS build
 
 WORKDIR /app
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
@@ -21,12 +18,9 @@ RUN python -m venv /opt/venv && \
     /opt/venv/bin/pip install --require-hashes -r requirements.txt
 
 # ─── Laufzeit-Stufe: schlankes Image ohne Build-Werkzeuge ──────────────────────
-# Denselben Digest wie oben eintragen.
-FROM python:3.12-slim
-
-# curl für den Container-Health-Check; danach Paketlisten aufräumen
-RUN apt-get update && apt-get install -y --no-install-recommends curl && \
-    rm -rf /var/lib/apt/lists/*
+# Derselbe Digest wie oben. Kein apt-get: curl wäre ein ungepinntes Paket,
+# der Health Check unten nutzt deshalb Python.
+FROM python:3.12-slim@sha256:5e2bdb1b0d542d5039cffb8181c65930093949194a65c365dfb1b0fe13a4fa5b
 
 # Nicht als root laufen (sichere Defaults)
 RUN useradd --create-home --uid 10001 appuser
@@ -49,7 +43,7 @@ EXPOSE 8000
 
 # Container-Health-Check nutzt denselben /health-Endpunkt wie das Skript
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -fsS http://127.0.0.1:8000/health || exit 1
+    CMD ["python", "-c", "import sys, urllib.request; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2).status == 200 else 1)"]
 
 # ADMIN_PASSWORD wird zur Laufzeit als Secret übergeben, nie im Image gebacken
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
