@@ -2,6 +2,8 @@
 
 Eine kleine REST-API (Python, FastAPI, SQLite) zur Verwaltung von Notizen mit Benutzerkonten, drei Rollen, persönlichen API-Tokens mit eingeschränkten Rechten und einem Audit-Log. Der Code steckt in `web/app.py` und `web/logging_setup.py`, damit sich jeder Datenfluss von der HTTP-Anfrage bis zur Tabelle verfolgen lässt.
 
+Die Sicherheitsmaßnahmen, sortiert nach den fünf Bewertungsfeldern, beschreibt das [SCHUTZKONZEPT.md](SCHUTZKONZEPT.md). Wo genau welches Prüfungskriterium erfüllt ist, steht in [docs/nachweise.md](docs/nachweise.md).
+
 ## Start
 
 Voraussetzung ist Python 3.10 oder neuer.
