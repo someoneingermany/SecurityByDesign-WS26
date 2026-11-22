@@ -11,7 +11,7 @@ annotated-doc==0.0.5 \
 annotated-types==0.7.0 \
     --hash=sha256:1f02e8b43a8fbbc3f3e0d4f0f4bfc8131bcb4eebe8849b8e5c773f3a1c582a53
     # via pydantic
-anyio==4.11.0 \
+anyio==4.16.0 \
     --hash=sha256:0287e96f4d26d4149305414d4e3bc32f0dcd0862365a4bddea19d7a1ec38c4fc
     # via starlette
 click==8.3.0 \
@@ -23,7 +23,7 @@ fastapi==0.162.0 \
 h11==0.16.0 \
     --hash=sha256:63cf8bbe7522de3bf65932fda1d9c2772064ffb3dae62d55932da54b31cb6c86
     # via uvicorn
-idna==3.11 \
+idna==3.20 \
     --hash=sha256:771a87f49d9defaf64091e6e6fe9c18d4833f140bd19464795bc32d966ca37ea
     # via anyio
 opentelemetry-api==1.45.2 \

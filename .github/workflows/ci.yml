@@ -1,6 +1,6 @@
 name: CI
 
-# Felder 2 (Code Security) und 5 (Dynamisches Testing):
+# Felder 2 (Code Security)  3 (Schwachstellen-Scan) und 5 (Dynamisches Testing):
 # läuft bei jedem Push und Pull Request und blockiert bei Fehlern.
 on:
   push:

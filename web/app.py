@@ -383,17 +383,20 @@ app = FastAPI(
 @app.middleware("http")
 async def access_log(request: Request, call_next):
     """Strukturierte Zugriffsprotokollierung pro Request.
-
+ 
     Es werden nur Metadaten geloggt (Methode, Pfad, Status, Dauer), niemals
     Request-Bodies, Tokens oder Passwörter – diese dürfen nicht in Logs landen.
     """
-    with RequestTimer() as timer:
-        try:
+    timer = RequestTimer()
+    try:
+        with timer:
             response = await call_next(request)
-        except Exception:
-            log_event("http.error", level=logging.ERROR, method=request.method,
-                      path=request.url.path, duration_ms=timer.duration_ms)
-            raise
+    except Exception as exc:
+        # Erst nach dem with-Block ist duration_ms gesetzt. 
+        log_event("http.error", level=logging.ERROR, method=request.method,
+                  path=request.url.path, status=500, duration_ms=timer.duration_ms,
+                  error=type(exc).__name__)
+        raise
     log_event(
         "http.request",
         level=logging.INFO if response.status_code < 500 else logging.ERROR,
@@ -403,7 +406,6 @@ async def access_log(request: Request, call_next):
         duration_ms=timer.duration_ms,
     )
     return response
-
 
 @app.get("/health", tags=["System"])
 def health(db: DB) -> dict:
