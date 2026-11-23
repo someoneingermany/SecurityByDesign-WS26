@@ -16,17 +16,33 @@ TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 fail=0
 
+# Ein Werkzeug, das fehlt oder abstürzt, endet ebenfalls mit Exit != 0. Ein Test
+# gilt deshalb nur als bestanden, wenn die Ausgabe auch wirklich einen Fund enthält.
+kein_fund() {  # $1 = Werkzeug, $2 = Exit-Code, $3 = Ausgabedatei
+    echo "  FEHLGESCHLAGEN: $1 endete mit Exit $2, aber ohne Fund. Ist $1 installiert?"
+    [ -s "$3" ] && head -n 3 "$3" | sed 's/^/    /'
+    fail=1
+}
+
 echo "== Positivtest 1: mypy (Type Checker) muss Typfehler melden =="
-if "$PY" -m mypy --config-file pyproject.toml security_examples/type_error_demo.py >"$TMP/mypy.txt" 2>&1; then
+"$PY" -m mypy --config-file pyproject.toml security_examples/type_error_demo.py >"$TMP/mypy.txt" 2>&1
+rc=$?
+if [ "$rc" -eq 0 ]; then
     echo "  FEHLGESCHLAGEN: mypy meldete KEINE Fehler (erwartet: Fehler)"; fail=1
+elif ! grep -q "\[arg-type\]" "$TMP/mypy.txt"; then
+    kein_fund mypy "$rc" "$TMP/mypy.txt"
 else
     echo "  OK: mypy meldet Fehler und schlägt fehl (Exit != 0)"
     grep -E "error" "$TMP/mypy.txt" | sed 's/^/    /'
 fi
 
 echo "== Positivtest 2: bandit (SAST) muss im Demo-Code Funde melden =="
-if "$PY" -m bandit -r security_examples/insecure_demo.py >"$TMP/bandit.txt" 2>&1; then
+"$PY" -m bandit -r security_examples/insecure_demo.py >"$TMP/bandit.txt" 2>&1
+rc=$?
+if [ "$rc" -eq 0 ]; then
     echo "  FEHLGESCHLAGEN: bandit meldete KEINE Funde (erwartet: Funde)"; fail=1
+elif ! grep -q "Issue: \[B" "$TMP/bandit.txt"; then
+    kein_fund bandit "$rc" "$TMP/bandit.txt"
 else
     echo "  OK: bandit meldet Funde und schlägt fehl (Exit != 0)"
     grep -E "Issue:" "$TMP/bandit.txt" | sed 's/^/    /'
@@ -35,9 +51,13 @@ fi
 echo "== Positivtest 3: gitleaks (Secret Scanning) muss Secrets finden =="
 # Config ohne den security_examples-Ausschluss, damit der Demo-Ordner geprüft wird
 grep -v "security_examples" .gitleaks.toml >"$TMP/gl.toml"
-if "$GITLEAKS" detect --no-git --source security_examples/insecure_demo.py --config "$TMP/gl.toml" \
-        --report-path "$TMP/gl.json" --report-format json --no-banner >/dev/null 2>&1; then
+"$GITLEAKS" detect --no-git --source security_examples/insecure_demo.py --config "$TMP/gl.toml" \
+        --report-path "$TMP/gl.json" --report-format json --no-banner >"$TMP/gitleaks.txt" 2>&1
+rc=$?
+if [ "$rc" -eq 0 ]; then
     echo "  FEHLGESCHLAGEN: gitleaks fand KEINE Secrets (erwartet: Funde)"; fail=1
+elif ! grep -q "RuleID" "$TMP/gl.json" 2>/dev/null; then
+    kein_fund gitleaks "$rc" "$TMP/gitleaks.txt"
 else
     echo "  OK: gitleaks schlägt fehl (Exit != 0), Funde:"
     "$PY" -c "import json,sys;[print('    ',f['RuleID'],f['File']+':'+str(f['StartLine'])) for f in json.load(open(sys.argv[1]))]" "$TMP/gl.json"
