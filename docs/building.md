@@ -31,7 +31,7 @@ Direkte Abhängigkeiten stehen in `requirements.in`. Daraus erzeugt pip-compile 
 
 ```bash
 docker run --rm -v "$PWD":/w -w /w python:3.12-slim sh -c \
-  "pip install -q pip-tools && pip-compile --generate-hashes --allow-unsafe --output-file=requirements.txt requirements.in"
+  "pip install -q pip-tools==7.7.0 && pip-compile --generate-hashes --allow-unsafe --output-file=requirements.txt requirements.in"
 ```
 
 Der Lauf im `python:3.12-slim`-Container stellt sicher, dass die Auflösung zur Python-Version des Images passt.
