@@ -1,6 +1,22 @@
 # Notizen-API
 
-Eine kleine REST-API (Python, FastAPI, SQLite) zur Verwaltung von Notizen mit Benutzerkonten, drei Rollen, persönlichen API-Tokens mit eingeschränkten Rechten und einem Audit-Log. Der gesamte Code steckt in `app.py` (rund 600 Zeilen inklusive Kommentaren), damit sich jeder Datenfluss von der HTTP-Anfrage bis zur Tabelle verfolgen lässt. Das macht die API auch als Grundlage für eine Bedrohungsmodellierung (z. B. STRIDE) oder einen Penetrationstest geeignet.
+Eine kleine REST-API (Python, FastAPI, SQLite) zur Verwaltung von Notizen mit Benutzerkonten, drei Rollen, persönlichen API-Tokens mit eingeschränkten Rechten und einem Audit-Log. Der Code steckt in `web/app.py` und `web/logging_setup.py`, damit sich jeder Datenfluss von der HTTP-Anfrage bis zur Tabelle verfolgen lässt.
+
+Die Sicherheitsmaßnahmen, sortiert nach den fünf Bewertungsfeldern, beschreibt das [SCHUTZKONZEPT.md](SCHUTZKONZEPT.md). Wo genau welches Prüfungskriterium erfüllt ist, steht in [docs/nachweise.md](docs/nachweise.md).
+
+## Sicherheit nach Bewertungsfeldern
+
+**Vertiefungen:** Feld 2 (Code Security) und Feld 3 (Build & Supply Chain).
+
+**Feld 1, Building von Artefakten.** `build.sh` baut ein mehrstufiges Container-Image, das ohne root läuft und den Git-Commit als Tag trägt. `./build.sh --smoke` startet es anschließend und fragt `/health` ab. Bei jedem Merge nach `main` landet das Image außerdem in GHCR.
+
+**Feld 2, Code Security (Vertiefung).** Ungültige Eingaben weist Pydantic schon vor der Endpunkt-Logik mit 422 ab, mypy prüft die Typen. Dazu kommen sichere Defaults wie ablaufende Tokens oder 404 statt 403 bei fremden Notizen, und bei jedem Push und PR laufen bandit (SAST) und gitleaks (Secret Scanning) in der CI. Positivtests in `security_examples/` belegen, dass jedes Werkzeug anschlägt; den Datenfluss beschreibt [docs/datenfluss.md](docs/datenfluss.md).
+
+**Feld 3, Build & Supply Chain (Vertiefung).** Python-Pakete sind mit Version und SHA-256-Hash gepinnt, das Basis-Image mit Digest, die GitHub Actions mit Commit-SHA. pip-audit sucht bei jedem Push, jedem PR und einmal pro Woche nach bekannten Lücken, Syft erzeugt beim Veröffentlichen eine SBOM, und Dependabot schlägt Updates vor. Die Nachweise stehen in [docs/supply-chain.md](docs/supply-chain.md).
+
+**Feld 4, Logging & Betrieb.** Jede Logzeile geht als JSON nach STDOUT. Request-Bodies und Tokens tauchen darin nie auf. `/health` prüft die Datenbank und antwortet mit 200 oder 503, und genau diesen Endpunkt nutzt das Dockerfile als `HEALTHCHECK`.
+
+**Feld 5, Dynamisches Testing.** Bei jeder Änderung laufen 11 pytest-Tests in der CI. Dass sie Fehler wirklich bemerken, zeigt `scripts/mutation_demo.py`: Das Skript baut 6 typische Sicherheitsfehler ein, und jedes Mal scheitert ein Test ([docs/testing.md](docs/testing.md)).
 
 ## Start
 
@@ -8,11 +24,12 @@ Voraussetzung ist Python 3.10 oder neuer.
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+pip install --require-hashes -r requirements.txt
+cd web
 ADMIN_PASSWORD='bitte-ein-langes-passwort' uvicorn app:app --reload
 ```
 
-Die interaktive Dokumentation liegt unter http://127.0.0.1:8000/docs. Beim ersten Start wird das Konto `admin` angelegt; ohne `ADMIN_PASSWORD` wird ein Zufallspasswort erzeugt und einmalig auf der Konsole ausgegeben. Der Speicherort der Datenbank lässt sich mit `NOTES_DB` ändern (Standard: `notes.db`). Die Tests laufen mit `pytest -q`.
+Die interaktive Dokumentation liegt unter http://127.0.0.1:8000/docs. Beim ersten Start wird das Konto `admin` angelegt; ohne `ADMIN_PASSWORD` wird ein Zufallspasswort erzeugt und einmalig auf der Konsole ausgegeben. Der Speicherort der Datenbank lässt sich mit `NOTES_DB` ändern (Standard: `notes.db`). Die Tests laufen nach `pip install --require-hashes -r web/requirements-dev.txt` mit `pytest -q` im Repo-Root.
 
 ## Rollen und Scopes
 

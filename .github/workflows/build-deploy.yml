@@ -1,9 +1,12 @@
 name: Build & Publish
 
-# Feld 1 (Building, Vertiefung): Ein Merge in den Deploy-Branch (main) baut das
-# Container-Image automatisiert und veröffentlicht es in der GitHub Container
-# Registry (GHCR). Das veröffentlichte Image ist direkt installier-/ausführbar:
-#   docker run -e ADMIN_PASSWORD=... ghcr.io/<org>/notizen-api:latest
+# Feld 1 (Building, Zusatz, nicht als Vertiefung gewertet): Ein Merge in den
+# Deploy-Branch (main) baut das Container-Image automatisiert und veröffentlicht
+# es in der GitHub Container Registry (GHCR).
+# Feld 3 (SBOM): Zu jedem veröffentlichten Image entsteht automatisch eine SBOM.
+# Das veröffentlichte Image lässt sich direkt starten:
+#   docker run -e ADMIN_PASSWORD=... ghcr.io/someoneingermany/securitybydesign-ws26:latest
+
 on:
   push:
     branches: [main]
@@ -45,3 +48,16 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+      
+      - name: SBOM des veröffentlichten Images erzeugen (Syft, CycloneDX)
+        # Feld 3: Zutatenliste aller Pakete im Image, inklusive der Debian-Pakete
+        # des Basis-Images. Abrufbar als Artefakt am jeweiligen Workflow-Lauf.
+        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          image: ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
+          registry-username: ${{ github.actor }}
+          registry-password: ${{ secrets.GITHUB_TOKEN }}
+          format: cyclonedx-json
+          output-file: sbom.cdx.json
+          artifact-name: sbom-notizen-api.cdx.json
+          upload-release-assets: false
