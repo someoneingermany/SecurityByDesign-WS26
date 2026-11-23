@@ -3,7 +3,7 @@
 # ─── Build-Stufe: Abhängigkeiten in ein venv, hash-verifiziert ─────────────────
 # Basis-Image mit Tag UND Digest gepinnt (Feld 3, Immer-Pflicht). Maßgeblich ist
 # der Digest: Er ändert sich nie, ein Tag schon. Dependabot hält ihn aktuell.
-FROM python:3.12-slim@sha256:5e2bdb1b0d542d5039cffb8181c65930093949194a65c365dfb1b0fe13a4fa5b AS build
+FROM python:3.15-slim@sha256:65a65fc7b30b06cb6df4930fd4650697cb23f4c2698ab81fc87e4b031bc36928 AS build
 
 WORKDIR /app
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
@@ -20,7 +20,7 @@ RUN python -m venv /opt/venv && \
 # ─── Laufzeit-Stufe: schlankes Image ohne Build-Werkzeuge ──────────────────────
 # Derselbe Digest wie oben. Kein apt-get: curl wäre ein ungepinntes Paket,
 # der Health Check unten nutzt deshalb Python.
-FROM python:3.12-slim@sha256:5e2bdb1b0d542d5039cffb8181c65930093949194a65c365dfb1b0fe13a4fa5b
+FROM python:3.15-slim@sha256:65a65fc7b30b06cb6df4930fd4650697cb23f4c2698ab81fc87e4b031bc36928
 
 # Nicht als root laufen (sichere Defaults)
 RUN useradd --create-home --uid 10001 appuser
