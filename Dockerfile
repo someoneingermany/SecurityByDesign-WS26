@@ -1,5 +1,3 @@
-# syntax=docker/dockerfile:1
-
 # ─── Build-Stufe: Abhängigkeiten in ein venv, hash-verifiziert ─────────────────
 # Basis-Image mit Tag UND Digest gepinnt (Feld 3, Immer-Pflicht). Maßgeblich ist
 # der Digest: Er ändert sich nie, ein Tag schon. Dependabot hält ihn aktuell.

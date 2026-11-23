@@ -55,7 +55,7 @@ Details, Nachweise und lokale Reproduktion: [docs/supply-chain.md](docs/supply-c
 | 4 Updates on-demand | PRs für Python, Docker und Actions, wöchentlich und auf Knopfdruck | Dependabot |
 
 - **Mitigiert:** Ausgetauschte Pakete, Images oder Actions brechen den Build ab. Bekannte CVEs fallen auf. Schon bei der Einführung fand pip-audit echte Lücken in `anyio` und `idna`, beide sind behoben.
-- **Verbleibend:** Das Image ist nicht signiert. Debian-Pakete im Image werden nicht auf CVEs gescannt. Eine Backdoor in einer bereits gepinnten Version erkennt kein Hash.
+- **Verbleibend:** Das Image ist nicht signiert. Debian-Pakete im Image werden nicht auf CVEs gescannt. Eine Backdoor in einer bereits gepinnten Version erkennt kein Hash. Der GitHub-Runner (`ubuntu-latest`) und die Patch-Version von Python in der CI lassen sich nicht per Prüfsumme festlegen.
 
 ## Feld 4 – Logging & Betrieb
 

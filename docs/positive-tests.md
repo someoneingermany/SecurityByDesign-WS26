@@ -28,7 +28,7 @@ brew install gitleaks            # oder Release von github.com/gitleaks/gitleaks
 ./security_examples/run_positive_tests.sh
 ```
 
-Schlägt ein Werkzeug **nicht** an, endet das Skript mit Exit-Code 1. Der Positivtest ist damit selbst überprüfbar.
+Schlägt ein Werkzeug **nicht** an, endet das Skript mit Exit-Code 1. Dasselbe gilt, wenn ein Werkzeug fehlt oder abstürzt: Ein Test zählt nur, wenn die Ausgabe wirklich einen Fund enthält. Der Positivtest ist damit selbst überprüfbar.
 
 ## Ergebnis eines echten Laufs (2026-11-02)
 
